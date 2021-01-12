@@ -1,2 +1,14 @@
-MQTTClient:MQTTClient.c MQTTClient_publish.c
-	gcc -o MQTTClient MQTTTime.h Clients.h MQTTClient.c MQTTClient_publish.c
+cc=gcc
+prom = MQTT
+deps = $(shell find ./ -name "*.h")
+src = $(shell find ./ -name "*.c")
+obj = $(src:%.c=%.o)
+
+$(prom):$(obj)
+	$(cc) -o $(prom) $(obj)
+
+%.o: %.c $(deps)
+	$(cc) -c $< -o $@
+
+clean:
+	rm -rf $(obj) $(prom) *.gch

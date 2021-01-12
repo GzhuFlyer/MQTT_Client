@@ -31,8 +31,8 @@
 // #include <openssl/ssl.h>
 // #endif
 #include "MQTTClient.h"
-// #include "LinkedList.h"
-// #include "MQTTClientPersistence.h"
+#include "LinkedList.h"
+#include "MQTTClientPersistence.h"
 
 // /**
 //  * Stored publication data to minimize copying
@@ -63,17 +63,17 @@
 // 	int len;				/**> length of the whole structure+data */
 // } Messages;
 
-// /**
-//  * Client will message data
-//  */
-// typedef struct
-// {
-// 	char *topic;
-// 	int payloadlen;
-// 	void *payload;
-// 	int retained;
-// 	int qos;
-// } willMessages;
+/**
+ * Client will message data
+ */
+typedef struct
+{
+	char *topic;
+	int payloadlen;
+	void *payload;
+	int retained;
+	int qos;
+} willMessages;
 
 typedef struct
 {
@@ -156,13 +156,13 @@ typedef struct
 // int clientIDCompare(void* a, void* b);
 // int clientSocketCompare(void* a, void* b);
 
-// /**
-//  * Configuration data related to all clients
-//  */
-// typedef struct
-// {
-// 	const char* version;
-// 	List* clients;
-// } ClientStates;
+/**
+ * Configuration data related to all clients
+ */
+typedef struct
+{
+	const char* version;
+	List* clients;
+} ClientStates;
 
 // #endif

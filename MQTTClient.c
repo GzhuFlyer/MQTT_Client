@@ -54,29 +54,29 @@
 #endif
 
 #include "MQTTClient.h"
-// #if !defined(NO_PERSISTENCE)
-// #include "MQTTPersistence.h"
-// #endif
+#if !defined(NO_PERSISTENCE)
+#include "MQTTPersistence.h"
+#endif
 
 // #include "utf-8.h"
 // #include "MQTTProtocol.h"
-// #include "MQTTProtocolOut.h"
-// #include "Thread.h"
+#include "MQTTProtocolOut.h"
+#include "Thread.h"
 // #include "SocketBuffer.h"
-// #include "StackTrace.h"
-// #include "Heap.h"
+#include "StackTrace.h"
+#include "Heap.h"
 
-// #if defined(OPENSSL)
-// #include <openssl/ssl.h>
-// #else
-// #define URI_SSL "ssl://"
-// #endif
+#if defined(OPENSSL)
+#include <openssl/ssl.h>
+#else
+#define URI_SSL "ssl://"
+#endif
 
 // #include "OsWrapper.h"
 
-// #define URI_TCP "tcp://"
-// #define URI_WS "ws://"
-// #define URI_WSS "wss://"
+#define URI_TCP "tcp://"
+#define URI_WS "ws://"
+#define URI_WSS "wss://"
 
 // #include "VersionInfo.h"
 // #include "WebSocket.h"
@@ -94,13 +94,14 @@
 // #endif
 // }
 
-// static ClientStates ClientState =
-// {
-// 	CLIENT_VERSION, /* version */
-// 	NULL /* client list */
-// };
+#define CLIENT_VERSION "add by frank"
+static ClientStates ClientState =
+{
+	CLIENT_VERSION, /* version */
+	NULL /* client list */
+};
 
-// ClientStates* bstate = &ClientState;
+ClientStates* bstate = &ClientState;
 
 // MQTTProtocol state;
 
@@ -237,8 +238,8 @@
 // #endif
 
 // #else
-// static pthread_mutex_t mqttclient_mutex_store = PTHREAD_MUTEX_INITIALIZER;
-// static mutex_type mqttclient_mutex = &mqttclient_mutex_store;
+static pthread_mutex_t mqttclient_mutex_store = PTHREAD_MUTEX_INITIALIZER;
+static mutex_type mqttclient_mutex = &mqttclient_mutex_store;
 
 // static pthread_mutex_t socket_mutex_store = PTHREAD_MUTEX_INITIALIZER;
 // static mutex_type socket_mutex = &socket_mutex_store;
@@ -280,8 +281,8 @@
 // #define WINAPI
 // #endif
 
-// static volatile int library_initialized = 0;
-// static List* handles = NULL;
+static volatile int library_initialized = 0;
+static List* handles = NULL;
 // static int running = 0;
 // static int tostop = 0;
 // static thread_id_type run_id = 0;
@@ -363,7 +364,7 @@ typedef struct
 // static MQTTPacket* MQTTClient_waitfor(MQTTClient handle, int packet_type, int* rc, ELAPSED_TIME_TYPE timeout);
 // /*static int pubCompare(void* a, void* b); */
 // static void MQTTProtocol_checkPendingWrites(void);
-// static void MQTTClient_writeComplete(int socket, int rc);
+static void MQTTClient_writeComplete(int socket, int rc);
 
 
 int MQTTClient_createWithOptions(MQTTClient* handle, const char* serverURI, const char* clientId,
@@ -372,150 +373,150 @@ int MQTTClient_createWithOptions(MQTTClient* handle, const char* serverURI, cons
 	int rc = 0;
 	MQTTClients *m = NULL;
 
-// #if (defined(_WIN32) || defined(_WIN64)) && defined(PAHO_MQTT_STATIC)
-// 	/* intializes mutexes once.  Must come before FUNC_ENTRY */
-// 	BOOL bStatus = InitOnceExecuteOnce(&g_InitOnce, InitOnceFunction, NULL, NULL);
-// #endif
-// 	FUNC_ENTRY;
-// 	if ((rc = Thread_lock_mutex(mqttclient_mutex)) != 0)
-// 		goto exit;
+#if (defined(_WIN32) || defined(_WIN64)) && defined(PAHO_MQTT_STATIC)
+	/* intializes mutexes once.  Must come before FUNC_ENTRY */
+	BOOL bStatus = InitOnceExecuteOnce(&g_InitOnce, InitOnceFunction, NULL, NULL);
+#endif
+	FUNC_ENTRY;
+	if ((rc = Thread_lock_mutex(mqttclient_mutex)) != 0)
+		goto exit;
 
-// 	if (serverURI == NULL || clientId == NULL)
-// 	{
-// 		rc = MQTTCLIENT_NULL_PARAMETER;
-// 		goto exit;
-// 	}
+	if (serverURI == NULL || clientId == NULL)
+	{
+		rc = MQTTCLIENT_NULL_PARAMETER;
+		goto exit;
+	}
 
-// 	if (!UTF8_validateString(clientId))
-// 	{
-// 		rc = MQTTCLIENT_BAD_UTF8_STRING;
-// 		goto exit;
-// 	}
+	if (!UTF8_validateString(clientId))
+	{
+		rc = MQTTCLIENT_BAD_UTF8_STRING;
+		goto exit;
+	}
 
-// 	if (strlen(clientId) == 0 && persistence_type == MQTTCLIENT_PERSISTENCE_DEFAULT)
-// 	{
-// 		rc = MQTTCLIENT_PERSISTENCE_ERROR;
-// 		goto exit;
-// 	}
+	if (strlen(clientId) == 0 && persistence_type == MQTTCLIENT_PERSISTENCE_DEFAULT)
+	{
+		rc = MQTTCLIENT_PERSISTENCE_ERROR;
+		goto exit;
+	}
 
-// 	if (strstr(serverURI, "://") != NULL)
-// 	{
-// 		if (strncmp(URI_TCP, serverURI, strlen(URI_TCP)) != 0
-// 		 && strncmp(URI_WS, serverURI, strlen(URI_WS)) != 0
-// #if defined(OPENSSL)
-//             && strncmp(URI_SSL, serverURI, strlen(URI_SSL)) != 0
-// 		 && strncmp(URI_WSS, serverURI, strlen(URI_WSS)) != 0
-// #endif
-// 			)
-// 		{
-// 			rc = MQTTCLIENT_BAD_PROTOCOL;
-// 			goto exit;
-// 		}
-// 	}
+	if (strstr(serverURI, "://") != NULL)
+	{
+		if (strncmp(URI_TCP, serverURI, strlen(URI_TCP)) != 0
+		 && strncmp(URI_WS, serverURI, strlen(URI_WS)) != 0
+#if defined(OPENSSL)
+            && strncmp(URI_SSL, serverURI, strlen(URI_SSL)) != 0
+		 && strncmp(URI_WSS, serverURI, strlen(URI_WSS)) != 0
+#endif
+			)
+		{
+			rc = MQTTCLIENT_BAD_PROTOCOL;
+			goto exit;
+		}
+	}
 
-// 	if (options && (strncmp(options->struct_id, "MQCO", 4) != 0 || options->struct_version != 0))
-// 	{
-// 		rc = MQTTCLIENT_BAD_STRUCTURE;
-// 		goto exit;
-// 	}
+	if (options && (strncmp(options->struct_id, "MQCO", 4) != 0 || options->struct_version != 0))
+	{
+		rc = MQTTCLIENT_BAD_STRUCTURE;
+		goto exit;
+	}
 
-// 	if (!library_initialized)
-// 	{
-// 		#if !defined(NO_HEAP_TRACKING)
-// 			Heap_initialize();
-// 		#endif
-// 		Log_initialize((Log_nameValue*)MQTTClient_getVersionInfo());
-// 		bstate->clients = ListInitialize();
-// 		Socket_outInitialize();
-// 		Socket_setWriteCompleteCallback(MQTTClient_writeComplete);
-// 		handles = ListInitialize();
-// #if defined(OPENSSL)
-// 		SSLSocket_initialize();
-// #endif
-// 		library_initialized = 1;
-// 	}
+	if (!library_initialized)
+	{
+		#if !defined(NO_HEAP_TRACKING)
+			Heap_initialize();
+		#endif
+		Log_initialize((Log_nameValue*)MQTTClient_getVersionInfo());
+		bstate->clients = ListInitialize();
+		Socket_outInitialize();
+		Socket_setWriteCompleteCallback(MQTTClient_writeComplete);
+		handles = ListInitialize();
+#if defined(OPENSSL)
+		SSLSocket_initialize();
+#endif
+		library_initialized = 1;
+	}
 
-// 	if ((m = malloc(sizeof(MQTTClients))) == NULL)
-// 	{
-// 		rc = PAHO_MEMORY_ERROR;
-// 		goto exit;
-// 	}
-// 	*handle = m;
-// 	memset(m, '\0', sizeof(MQTTClients));
-// 	m->commandTimeout = 10000L;
-// 	if (strncmp(URI_TCP, serverURI, strlen(URI_TCP)) == 0)
-// 		serverURI += strlen(URI_TCP);
-// 	else if (strncmp(URI_WS, serverURI, strlen(URI_WS)) == 0)
-// 	{
-// 		serverURI += strlen(URI_WS);
-// 		m->websocket = 1;
-// 	}
-// 	else if (strncmp(URI_SSL, serverURI, strlen(URI_SSL)) == 0)
-// 	{
-// #if defined(OPENSSL)
-// 		serverURI += strlen(URI_SSL);
-// 		m->ssl = 1;
-// #else
-// 		rc = MQTTCLIENT_SSL_NOT_SUPPORTED;
-// 		goto exit;
-// #endif
-// 	}
-// 	else if (strncmp(URI_WSS, serverURI, strlen(URI_WSS)) == 0)
-// 	{
-// #if defined(OPENSSL)
-// 		serverURI += strlen(URI_WSS);
-// 		m->ssl = 1;
-// 		m->websocket = 1;
-// #else
-// 		rc = MQTTCLIENT_SSL_NOT_SUPPORTED;
-// 		goto exit;
-// #endif
-// 	}
-// 	m->serverURI = MQTTStrdup(serverURI);
-// 	ListAppend(handles, m, sizeof(MQTTClients));
+	if ((m = malloc(sizeof(MQTTClients))) == NULL)
+	{
+		rc = PAHO_MEMORY_ERROR;
+		goto exit;
+	}
+	*handle = m;
+	memset(m, '\0', sizeof(MQTTClients));
+	m->commandTimeout = 10000L;
+	if (strncmp(URI_TCP, serverURI, strlen(URI_TCP)) == 0)
+		serverURI += strlen(URI_TCP);
+	else if (strncmp(URI_WS, serverURI, strlen(URI_WS)) == 0)
+	{
+		serverURI += strlen(URI_WS);
+		m->websocket = 1;
+	}
+	else if (strncmp(URI_SSL, serverURI, strlen(URI_SSL)) == 0)
+	{
+#if defined(OPENSSL)
+		serverURI += strlen(URI_SSL);
+		m->ssl = 1;
+#else
+		rc = MQTTCLIENT_SSL_NOT_SUPPORTED;
+		goto exit;
+#endif
+	}
+	else if (strncmp(URI_WSS, serverURI, strlen(URI_WSS)) == 0)
+	{
+#if defined(OPENSSL)
+		serverURI += strlen(URI_WSS);
+		m->ssl = 1;
+		m->websocket = 1;
+#else
+		rc = MQTTCLIENT_SSL_NOT_SUPPORTED;
+		goto exit;
+#endif
+	}
+	m->serverURI = MQTTStrdup(serverURI);
+	ListAppend(handles, m, sizeof(MQTTClients));
 
-// 	if ((m->c = malloc(sizeof(Clients))) == NULL)
-// 	{
-// 		ListRemove(handles, m);
-// 		rc = PAHO_MEMORY_ERROR;
-// 		goto exit;
-// 	}
-// 	memset(m->c, '\0', sizeof(Clients));
-// 	m->c->context = m;
-// 	m->c->MQTTVersion = (options) ? options->MQTTVersion : MQTTVERSION_DEFAULT;
-// 	m->c->outboundMsgs = ListInitialize();
-// 	m->c->inboundMsgs = ListInitialize();
-// 	m->c->messageQueue = ListInitialize();
-// 	m->c->clientID = MQTTStrdup(clientId);
-// 	m->connect_sem = Thread_create_sem(&rc);
-// 	m->connack_sem = Thread_create_sem(&rc);
-// 	m->suback_sem = Thread_create_sem(&rc);
-// 	m->unsuback_sem = Thread_create_sem(&rc);
+	if ((m->c = malloc(sizeof(Clients))) == NULL)
+	{
+		ListRemove(handles, m);
+		rc = PAHO_MEMORY_ERROR;
+		goto exit;
+	}
+	memset(m->c, '\0', sizeof(Clients));
+	m->c->context = m;
+	m->c->MQTTVersion = (options) ? options->MQTTVersion : MQTTVERSION_DEFAULT;
+	m->c->outboundMsgs = ListInitialize();
+	m->c->inboundMsgs = ListInitialize();
+	m->c->messageQueue = ListInitialize();
+	m->c->clientID = MQTTStrdup(clientId);
+	m->connect_sem = Thread_create_sem(&rc);
+	m->connack_sem = Thread_create_sem(&rc);
+	m->suback_sem = Thread_create_sem(&rc);
+	m->unsuback_sem = Thread_create_sem(&rc);
 
-// #if !defined(NO_PERSISTENCE)
-// 	rc = MQTTPersistence_create(&(m->c->persistence), persistence_type, persistence_context);
-// 	if (rc == 0)
-// 	{
-// 		rc = MQTTPersistence_initialize(m->c, m->serverURI);
-// 		if (rc == 0)
-// 			MQTTPersistence_restoreMessageQueue(m->c);
-// 	}
-// #endif
-// 	ListAppend(bstate->clients, m->c, sizeof(Clients) + 3*sizeof(List));
+#if !defined(NO_PERSISTENCE)
+	rc = MQTTPersistence_create(&(m->c->persistence), persistence_type, persistence_context);
+	if (rc == 0)
+	{
+		rc = MQTTPersistence_initialize(m->c, m->serverURI);
+		if (rc == 0)
+			MQTTPersistence_restoreMessageQueue(m->c);
+	}
+#endif
+	ListAppend(bstate->clients, m->c, sizeof(Clients) + 3*sizeof(List));
 
-// exit:
-// 	Thread_unlock_mutex(mqttclient_mutex);
-// 	FUNC_EXIT_RC(rc);
-// 	return rc;
-// }
+exit:
+	Thread_unlock_mutex(mqttclient_mutex);
+	FUNC_EXIT_RC(rc);
+	return rc;
+}
 
 
-// int MQTTClient_create(MQTTClient* handle, const char* serverURI, const char* clientId,
-// 		int persistence_type, void* persistence_context)
-// {
-// 	return MQTTClient_createWithOptions(handle, serverURI, clientId, persistence_type,
-// 		persistence_context, NULL);
-// }
+int MQTTClient_create(MQTTClient* handle, const char* serverURI, const char* clientId,
+		int persistence_type, void* persistence_context)
+{
+	return MQTTClient_createWithOptions(handle, serverURI, clientId, persistence_type,
+		persistence_context, NULL);
+}
 
 
 // static void MQTTClient_terminate(void)
@@ -657,17 +658,17 @@ int MQTTClient_createWithOptions(MQTTClient* handle, const char* serverURI, cons
 // }
 
 
-// /**
-//  * List callback function for comparing clients by socket
-//  * @param a first integer value
-//  * @param b second integer value
-//  * @return boolean indicating whether a and b are equal
-//  */
-// static int clientSockCompare(void* a, void* b)
-// {
-// 	MQTTClients* m = (MQTTClients*)a;
-// 	return m->c->net.socket == *(int*)b;
-// }
+/**
+ * List callback function for comparing clients by socket
+ * @param a first integer value
+ * @param b second integer value
+ * @return boolean indicating whether a and b are equal
+ */
+static int clientSockCompare(void* a, void* b)
+{
+	MQTTClients* m = (MQTTClients*)a;
+	return m->c->net.socket == *(int*)b;
+}
 
 
 // /**
@@ -3005,21 +3006,21 @@ int MQTTClient_createWithOptions(MQTTClient* handle, const char* serverURI, cons
 // }
 
 
-// static void MQTTClient_writeComplete(int socket, int rc)
-// {
-// 	ListElement* found = NULL;
+static void MQTTClient_writeComplete(int socket, int rc)
+{
+	ListElement* found = NULL;
 
-// 	FUNC_ENTRY;
-// 	/* a partial write is now complete for a socket - this will be on a publish*/
+	FUNC_ENTRY;
+	/* a partial write is now complete for a socket - this will be on a publish*/
 
-// 	MQTTProtocol_checkPendingWrites();
+	MQTTProtocol_checkPendingWrites();
 
-// 	/* find the client using this socket */
-// 	if ((found = ListFindItem(handles, &socket, clientSockCompare)) != NULL)
-// 	{
-// 		MQTTClients* m = (MQTTClients*)(found->content);
+	/* find the client using this socket */
+	if ((found = ListFindItem(handles, &socket, clientSockCompare)) != NULL)
+	{
+		MQTTClients* m = (MQTTClients*)(found->content);
 
-// 		m->c->net.lastSent = MQTTTime_now();
-// 	}
-// 	FUNC_EXIT;
-// }
+		m->c->net.lastSent = MQTTTime_now();
+	}
+	FUNC_EXIT;
+}
